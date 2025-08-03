@@ -22,8 +22,17 @@ class USBHUBDevice:
     def __str__(self) -> str:
         return f"{self.vendor}@{self.product}|{self.device}"
 
+    def get_device_id(self):
+        return self.device.get_id()
+
     def get_name(self):
         return f"{self.vendor}@{self.product}|{self.device.get_id()}"
+
+    def get_vendor(self):
+        return self.vendor
+
+    def get_product(self):
+        return self.product
 
     def get_desc(self):
         return f"USB HUB: {self.vendor}@{self.product}\nVendor: {self.vendor}\nProduct: {self.product}\nPort Number: {self.get_port_num()}\nPort List: {self.get_port_list()}"
@@ -70,8 +79,7 @@ class USBHUBDevice:
                             )
                         else:
                             res.extend(
-                                child.get_custom_dev(
-                                    custom_feature=custom_dev_type)
+                                child.get_custom_dev(custom_feature=custom_dev_type)
                             )
                     dev = child
             dev_i += 1
@@ -107,9 +115,9 @@ class USBHUBDeviceUtils:
     udtutils = USBDeviceTreeUtils()
 
     def __init__(self, nested_mode_sub: bool = False) -> None:
-        self.uhds: list[tuple[str, USBHUBDevice]] = (
-            []
-        )  # usbhub device list [(usb_device_id, usb_hub_device]
+        # The usbhub device's port topology of suppliers and their products may be the same
+        # So, a usb_device_id may be maaped to multi usb_hub_device
+        self.uhds: list[USBHUBDevice] = []  # usbhub device list [usb_hub_device]
         self.uhdd: dict[str, list[USBHUBDevice]] = (
             {}
         )  # usbhub device dict {usb_device_id -> [usb_hub_device]}
@@ -129,15 +137,14 @@ class USBHUBDeviceUtils:
     def _match(self) -> None:
         # find the target device base on target features
         logger.info("Matching USB HUB...")
-        uhds: list[tuple[str, USBHUBDevice]] = []
+        uhds: list[USBHUBDevice] = []
         uhdd: dict[str, list[USBHUBDevice]] = {}
 
         def callback(node, self, uhds, uhdd):
             for vendor in self.uhd_modules:
                 for product in self.uhd_modules[vendor]:
                     product_module = self.uhd_modules[vendor][product]
-                    success, _port_mapping = product_module.provider.match(
-                        node)
+                    success, _port_mapping = product_module.provider.match(node)
                     port_mapping = _port_mapping.copy()
                     if not success:
                         continue
@@ -150,7 +157,7 @@ class USBHUBDeviceUtils:
                     is_child = False
                     child_port = None
                     parent_uhd = None
-                    for id, pre in uhds:
+                    for pre in uhds:
                         if self.udtutils.is_child(pre.device, uhd.device):
                             is_child = False
                             for port in pre.get_port_list():
@@ -168,7 +175,7 @@ class USBHUBDeviceUtils:
                         if self.nested_mode == self.NESTED_MODE_COO:
                             # remove nested port
                             del parent_uhd.port_mapping[child_port]
-                            uhds.append((uhd.device.get_id(), uhd))
+                            uhds.append(uhd)
                             if uhd.device.get_id() not in uhdd:
                                 uhdd[uhd.device.get_id()] = [uhd]
                             else:
@@ -178,7 +185,7 @@ class USBHUBDeviceUtils:
                         else:
                             pass
                     else:
-                        uhds.append((uhd.device.get_id(), uhd))
+                        uhds.append(uhd)
                         if uhd.device.get_id() not in uhdd:
                             uhdd[uhd.device.get_id()] = [uhd]
                         else:

@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     usbhubtool.rescan()
+    logger.info(usbhubtool.udtutils)
     logger.info(usbhubtool.nested_mode)
     logger.info(usbhubtool.get_device_dict())
     logger.info(usbhubtool.get_device_list())

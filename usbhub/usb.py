@@ -2,6 +2,7 @@ import subprocess
 import re
 from typing import Callable
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class USBDevice:
         interface: int = -1,
         clazz: str = None,
         driver: str = None,
-        speed: int = 0,
+        speed: int|float = 0,
         vendor_id: str = None,
         product_id: str = None,
         info: str = None,
@@ -30,7 +31,7 @@ class USBDevice:
         self.interface = int(interface)
         self.clazz = clazz
         self.driver = driver
-        self.speed = int(speed)
+        self.speed = float(speed)
         self.vendor_id = vendor_id
         self.product_id = product_id
         self.info = info
@@ -205,7 +206,7 @@ class USBDeviceTreeUtils:
             if line.count("/:") > 0:
                 # root
                 current_level = 0
-                pattern = r"Bus (\d+)\.Port (\d+): Dev (\d+), Class=([^,]+), Driver=([^,]+), (\d+)M"
+                pattern = r"Bus (\d+)\.Port (\d+): Dev (\d+), Class=([^,]+), Driver=([^,]+), (\d+(\.\d*)?|\.\d+)M"
                 match = re.search(pattern, line)
                 if match:
                     bus = match.group(1)
@@ -236,7 +237,7 @@ class USBDeviceTreeUtils:
                 devices.append(current_node)
                 last_node = current_node
             elif line.count("|__") > 0:
-                pattern = r"Port (\d+): Dev (\d+), If (\d+), Class=([^,]+), Driver=([^,]+), (\d+)M"
+                pattern = r"Port (\d+): Dev (\d+), If (\d+), Class=([^,]+), Driver=([^,]+), (\d+(\.\d*)?|\.\d+)M"
                 match = re.search(pattern, line)
                 if match:
                     port = match.group(1)
